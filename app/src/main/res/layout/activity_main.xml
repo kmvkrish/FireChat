@@ -4,17 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.android.firechat.MainActivity">
 
-    <ListView
-        android:id="@+id/messageListView"
+    <android.support.v7.widget.RecyclerView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@+id/linearLayout"
-        android:stackFromBottom="false"
-        android:divider="@android:color/transparent"
-        android:transcriptMode="alwaysScroll" />
+        android:layout_height="wrap_content"
+        android:id="@+id/messageListView"
+        android:scrollbars="vertical"
+        android:layout_above="@+id/linearLayout" />
 
     <LinearLayout
         android:id="@+id/linearLayout"

@@ -1,68 +1,90 @@
 package com.example.android.firechat;
 
-import android.content.Context;
-import android.support.annotation.NonNull;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by kmvkrish on 26-12-2016.
  */
 
-public class MessageAdapter extends ArrayAdapter<Message> {
+public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHolder> {
 
-    private final Context context;
-    private final ArrayList<Message> messageArrayList;
-    public MessageAdapter(Context context, int resource, List<Message> messageList){
-        super(context, resource, messageList);
-        this.context = context;
-        this.messageArrayList = (ArrayList<Message>) messageList;
+    private static final int FROM_ME = 1;
+    private List<Message> mMessageList;
+
+    public MessageAdapter(List<Message> mMessageList) {
+        this.mMessageList = mMessageList;
     }
 
-    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        View messageView;
-
-        Message message = getItem(position);
-
-        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-
-        if(message.getName().equals(FirebaseAuth.getInstance().getCurrentUser().getDisplayName())){
-            convertView = (View)inflater.inflate(R.layout.message_list_item_right, parent, false);
-        }else{
-            convertView = (View)inflater.inflate(R.layout.message_llist_item_left, parent, false);
+    public int getItemViewType(int position) {
+        if(mMessageList.get(position).getName().equals(FirebaseAuth.getInstance().getCurrentUser().getDisplayName())){
+            return FROM_ME;
         }
+        return super.getItemViewType(position);
+    }
 
-        ImageView photoView = (ImageView) convertView.findViewById(R.id.photoImageView);
-        TextView messageTextView = (TextView) convertView.findViewById(R.id.messageTextView);
-        TextView nameTextView = (TextView) convertView.findViewById(R.id.nameTextView);
+    @Override
+    public int getItemCount() {
+        return mMessageList.size();
+    }
+
+    @Override
+    public MessageAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        MessageAdapter.ViewHolder viewHolder;
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        switch(viewType){
+            case 1:
+                View v = inflater.inflate(R.layout.message_list_item_right, parent, false);
+                viewHolder = new MessageAdapter.ViewHolder(v);
+                break;
+            default:
+                View view = inflater.inflate(R.layout.message_llist_item_left, parent, false);
+                viewHolder = new MessageAdapter.ViewHolder(view);
+                break;
+        }
+        return viewHolder;
+    }
+
+    @Override
+    public void onBindViewHolder(MessageAdapter.ViewHolder holder, int position) {
+        Message message = mMessageList.get(position);
 
         boolean isPhotoUrl = (message.getPhotoUrl() != null);
 
         if(isPhotoUrl){
-            messageTextView.setVisibility(View.GONE);
-            photoView.setVisibility(View.VISIBLE);
-            Glide.with(photoView.getContext())
+            holder.messageTextView.setVisibility(View.GONE);
+            holder.photoView.setVisibility(View.VISIBLE);
+            Glide.with(holder.photoView.getContext())
                     .load(message.getPhotoUrl())
-                    .into(photoView);
+                    .into(holder.photoView);
         }else{
-            messageTextView.setVisibility(View.VISIBLE);
-            photoView.setVisibility(View.GONE);
-            messageTextView.setText(message.getText());
+            holder.messageTextView.setVisibility(View.VISIBLE);
+            holder.photoView.setVisibility(View.GONE);
+            holder.messageTextView.setText(message.getText());
         }
-        nameTextView.setText(message.getName());
+        holder.nameTextView.setText(message.getName());
+    }
 
-        return convertView;
+    public class ViewHolder extends RecyclerView.ViewHolder{
+        public ImageView photoView;
+        public TextView nameTextView;
+        public TextView messageTextView;
+
+        public ViewHolder(View itemView) {
+            super(itemView);
+            this.photoView = (ImageView) itemView.findViewById(R.id.photoImageView);
+            this.nameTextView = (TextView) itemView.findViewById(R.id.nameTextView);
+            this.messageTextView = (TextView) itemView.findViewById(R.id.messageTextView);
+        }
     }
 }

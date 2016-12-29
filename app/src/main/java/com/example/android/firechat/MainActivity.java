@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DefaultItemAnimator;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Menu;
@@ -14,19 +17,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ListView;
-import android.widget.Toast;
 
 import com.facebook.FacebookSdk;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -37,32 +36,26 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final String ANONYMOUS = "Anonymous";
     private static final int RC_PHOTO_PICKER = 2;
-    private String mUsername;
 
     private Message message;
-    private ArrayList<Message> messageList = new ArrayList<>();
-    private List<String> mMessageKeyList = new ArrayList<>();
-
+    private List<Message> messageList = new ArrayList<>();
+    private List<String> messageKeyList = new ArrayList<>();
+    private RecyclerView mMessageListView;
     private MessageAdapter mMessageAdapter;
+
     private EditText mMessageEditText;
     private Button mMessageSendButton;
-    private ImageButton photoPickerButton;
 
     private ProgressDialog mProgressDialog;
 
-    private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mMessageDatabaseReference;
 
-    private FirebaseUser mFirebaseUser;
     private FirebaseAuth mFirebaseAuth;
 
-    private FirebaseStorage mFirebaseStorage;
     private StorageReference mChatPhotoStorageReference;
 
     private ChildEventListener mMessageChildEventListener;
-    private ValueEventListener mMessageValueEventListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +63,17 @@ public class MainActivity extends AppCompatActivity {
         FacebookSdk.sdkInitialize(getApplicationContext());
         setContentView(R.layout.activity_main);
 
-        ListView mMessageListView;
+        mMessageListView = (RecyclerView) findViewById(R.id.messageListView);
+        mMessageAdapter = new MessageAdapter(messageList);
+
+        mMessageListView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+        mMessageListView.setItemAnimator(new DefaultItemAnimator());
+
+        mMessageListView.setAdapter(mMessageAdapter);
+
+        ImageButton photoPickerButton;
+        FirebaseDatabase mFirebaseDatabase;
+        FirebaseStorage mFirebaseStorage;
 
         mProgressDialog = new ProgressDialog(MainActivity.this);
         mProgressDialog.setMessage("Loading messages...");
@@ -82,20 +85,13 @@ public class MainActivity extends AppCompatActivity {
         mMessageDatabaseReference = mFirebaseDatabase.getReference("messages");
 
         mFirebaseAuth = FirebaseAuth.getInstance();
-        mFirebaseUser = mFirebaseAuth.getCurrentUser();
 
         mFirebaseStorage = FirebaseStorage.getInstance();
         mChatPhotoStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
-        mUsername = mFirebaseUser.getDisplayName();
-
-        mMessageListView = (ListView) findViewById(R.id.messageListView);
         mMessageEditText = (EditText) findViewById(R.id.messageEditText);
         mMessageSendButton = (Button) findViewById(R.id.sendButton);
         photoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
-
-        mMessageAdapter = new MessageAdapter(this, R.layout.message_llist_item_left, messageList);
-        mMessageListView.setAdapter(mMessageAdapter);
 
         mMessageEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -121,8 +117,7 @@ public class MainActivity extends AppCompatActivity {
         mMessageSendButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View view) {
-                message = new Message(mMessageEditText.getText().toString(), null, mUsername);
-                //messageList.add(message);
+                message = new Message(mMessageEditText.getText().toString(), null, mFirebaseAuth.getCurrentUser().getDisplayName());
                 mMessageDatabaseReference.push().setValue(message);
                 mMessageEditText.setText("");
             }
@@ -168,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                             Uri downloadUri = taskSnapshot.getDownloadUrl();
-                            Message message = new Message(null, downloadUri.toString(), mUsername);
+                            Message message = new Message(null, downloadUri.toString(), mFirebaseAuth.getCurrentUser().getDisplayName());
                             mMessageDatabaseReference.push().setValue(message);
                         }
                     });
@@ -179,14 +174,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         attachChildEventListener();
-        //attachSingleValueEVentListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         detachChildEventListener();
-        //detachSingleValueEventListener();
     }
 
     private void attachChildEventListener() {
@@ -194,12 +187,10 @@ public class MainActivity extends AppCompatActivity {
             mMessageChildEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    Message newMessage = dataSnapshot.getValue(Message.class);
-                    mMessageAdapter.add(newMessage);
-                    mMessageAdapter.notifyDataSetChanged();
-                    if(mProgressDialog.isShowing()){
-                        mProgressDialog.dismiss();
-                    }
+                    String key = dataSnapshot.getKey();
+                    messageKeyList.add(key);
+                    messageList.add(dataSnapshot.getValue(Message.class));
+                    mMessageAdapter.notifyItemInserted(mMessageAdapter.getItemCount());
                 }
 
                 @Override
@@ -209,9 +200,12 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
-                    mMessageAdapter.remove(dataSnapshot.getValue(Message.class));
-                    mMessageAdapter.notifyDataSetChanged();
-
+                    int pos = messageKeyList.indexOf(dataSnapshot.getKey());
+                    if(pos != -1){
+                        messageKeyList.remove(pos);
+                        messageList.remove(pos);
+                        mMessageAdapter.notifyItemRemoved(pos);
+                    }
                 }
 
                 @Override
@@ -231,16 +225,9 @@ public class MainActivity extends AppCompatActivity {
     private void detachChildEventListener() {
         if(mMessageChildEventListener != null){
             mMessageDatabaseReference.removeEventListener(mMessageChildEventListener);
-            mMessageAdapter.clear();
+            messageList.clear();
             mMessageChildEventListener = null;
         }
     }
 
-    private void removeItemFromListAdapter(DataSnapshot dataSnapshot){
-        Toast.makeText(MainActivity.this, "Before delete: " + mMessageAdapter.getCount(), Toast.LENGTH_LONG).show();
-        Message newMessage = dataSnapshot.getValue(Message.class);
-        mMessageAdapter.remove(newMessage);
-        mMessageAdapter.notifyDataSetChanged();
-        Toast.makeText(MainActivity.this, "After delete: " + mMessageAdapter.getCount(), Toast.LENGTH_LONG).show();
-    }
 }
