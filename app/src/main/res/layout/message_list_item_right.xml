@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    >
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@drawable/bubble1"
+        android:layout_gravity="end">
+
+        <TextView
+            android:id="@+id/nameTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:textColor="@android:color/holo_blue_dark"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            tools:text="Name" />
+
+        <ImageView
+            android:id="@+id/photoImageView"
+            android:layout_width="180dp"
+            android:layout_height="180dp"
+            android:contentDescription="@string/photoUrl"
+            android:adjustViewBounds="true"
+            android:src="@drawable/com_facebook_profile_picture_blank_square"/>
+
+        <TextView
+            android:id="@+id/messageTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            tools:text="Message"
+            android:maxEms="12"/>
+    </LinearLayout>
+</LinearLayout>

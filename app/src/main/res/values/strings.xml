@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">FireChat</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="send_button_label">Send</string>
+    <string name="photoUrl">photoUrl</string>
+
+    <string name="facebook_app_id">238186299937251</string>
+    <string name="fb_login_protocol_scheme">fb238186299937251</string>
+</resources>
